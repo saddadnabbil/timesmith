@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+.node_modules.lock
+
+# Build & output directories
+dist
+.output
+.tanstack
+.grok
+
+# Environment & local settings
+.env
+.env.*
+!.env.example
+
+# Logs & temporary files
+*.log
+screenshots/
+artifacts/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
