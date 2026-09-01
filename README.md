@@ -40,7 +40,7 @@ Ensure you have **Node.js** (v18 or higher, recommended v22) and `npm` installed
 Clone the repository and install the dependencies:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/saddadnabbil/timesmith.git
 cd timesmith
 npm install
 ```
@@ -78,10 +78,64 @@ In the project directory, you can run:
 
 ---
 
+## Contributing & Branch Workflow
+
+We welcome contributions! To maintain code quality and stability, direct pushes to the `main` branch are restricted. All changes must go through a Pull Request and pass automated CI checks.
+
+### Workflow Steps
+
+1. **Fork or Create a Feature Branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   # or
+   git checkout -b fix/your-bug-fix
+   ```
+
+2. **Make Changes & Test Locally**:
+   Run typecheck, linting, and tests before committing:
+   ```bash
+   npm run typecheck
+   npm run lint
+   npm run build
+   ```
+
+3. **Commit & Push**:
+   ```bash
+   git add .
+   git commit -m "feat: add awesome feature"
+   git push origin feature/your-feature-name
+   ```
+
+4. **Create a Pull Request**:
+   Open a PR against the `main` branch on GitHub.
+   - GitHub Actions will run automated type checks and build verification on your PR.
+   - Once reviewed and approved by a maintainer, your PR will be merged into `main`.
+
+5. **Automatic Production Deployment**:
+   Merging into `main` automatically triggers the GitHub Actions CI/CD deployment pipeline to Cloudflare Pages (`https://timesmith.saddadnabbil.my.id`).
+
+---
+
+## CI/CD Pipeline & GitHub Secrets
+
+Automated build verification and deployment are handled by GitHub Actions (`.github/workflows/ci-cd.yml`).
+
+### Required GitHub Secrets
+
+To enable automated deployment to Cloudflare Pages, set the following secrets in **Settings > Secrets and variables > Actions**:
+
+- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API Token with Pages deployment permissions.
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID (`1ec856168ea590c7a368f0db28a6f3d1`).
+
+---
+
 ## Project Structure
 
 ```text
 timesmith/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml    # GitHub Actions CI/CD pipeline
 ├── public/              # Static assets
 ├── scripts/             # Build and environment helper scripts
 ├── src/
