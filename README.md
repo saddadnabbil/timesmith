@@ -15,6 +15,9 @@ Timesmith is a fast-paced, interactive arithmetic and times-table practice web a
 - **Progress & Analytics**: Track overall accuracy, speed per fact, and identify weak combinations to improve on.
 - **Web Audio Sound Effects**: Dynamic Web Audio API feedback for correct/incorrect inputs, combos, and milestones.
 - **Local Save System**: Instant persistence using `localStorage`.
+- **Google Account Sync**: Optional cross-device progress and verified weekly leaderboard scores.
+- **Responsive App Navigation**: Dedicated Home, Practice, Progress, and League views on mobile and desktop.
+- **Light & Dark Themes**: Persistent theme selection without first-render flicker.
 
 ---
 
@@ -56,6 +59,7 @@ npm run dev
 The app will be running locally at `http://localhost:8080` (or `http://0.0.0.0:8080`).
 
 > **Note**: If port `8080` is already in use by another process on your machine, you can specify a custom port:
+>
 > ```bash
 > npm run dev -- --port 3000
 > ```
@@ -66,15 +70,15 @@ The app will be running locally at `http://localhost:8080` (or `http://0.0.0.0:8
 
 In the project directory, you can run:
 
-| Command | Description |
-| :--- | :--- |
-| `npm run dev` | Starts the development server on port `8080` |
-| `npm run build` | Compiles and builds the production bundle |
-| `npm run preview` | Previews the production build locally |
+| Command             | Description                                            |
+| :------------------ | :----------------------------------------------------- |
+| `npm run dev`       | Starts the development server on port `8080`           |
+| `npm run build`     | Compiles and builds the production bundle              |
+| `npm run preview`   | Previews the production build locally                  |
 | `npm run typecheck` | Runs TypeScript compiler checks without emitting files |
-| `npm run test` | Executes unit tests |
-| `npm run lint` | Lints the codebase using ESLint |
-| `npm run format` | Formats the codebase using Prettier |
+| `npm run test`      | Executes unit tests                                    |
+| `npm run lint`      | Lints the codebase using ESLint                        |
+| `npm run format`    | Formats the codebase using Prettier                    |
 
 ---
 
@@ -85,6 +89,7 @@ We welcome contributions! To maintain code quality and stability, direct pushes 
 ### Workflow Steps
 
 1. **Fork or Create a Feature Branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    # or
@@ -93,6 +98,7 @@ We welcome contributions! To maintain code quality and stability, direct pushes 
 
 2. **Make Changes & Test Locally**:
    Run typecheck, linting, and tests before committing:
+
    ```bash
    npm run typecheck
    npm run lint
@@ -100,6 +106,7 @@ We welcome contributions! To maintain code quality and stability, direct pushes 
    ```
 
 3. **Commit & Push**:
+
    ```bash
    git add .
    git commit -m "feat: add awesome feature"
@@ -112,7 +119,7 @@ We welcome contributions! To maintain code quality and stability, direct pushes 
    - Once reviewed and approved by a maintainer, your PR will be merged into `main`.
 
 5. **Automatic Production Deployment**:
-   Merging into `main` automatically triggers the GitHub Actions CI/CD deployment pipeline to Cloudflare Pages (`https://timesmith.saddadnabbil.my.id`).
+   Merging into `main` automatically triggers the GitHub Actions CI/CD deployment pipeline to Cloudflare Pages (<https://timesmith.saddadnabbil.my.id>). Version tags also publish an immutable GitHub Release.
 
 ---
 
@@ -126,6 +133,9 @@ To enable automated deployment to Cloudflare Pages, set the following secrets in
 
 - `CLOUDFLARE_API_TOKEN`: Your Cloudflare API Token with Pages deployment permissions.
 - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare Account ID (`1ec856168ea590c7a368f0db28a6f3d1`).
+- `DATABASE_URL`: Production PostgreSQL/Neon connection string used by the migration gate.
+
+Cloudflare runtime secrets, Google OAuth setup, DNS checks, and the release procedure are documented in [Production setup](docs/PRODUCTION.md) and [Release guide](RELEASE.md).
 
 ---
 

@@ -1,4 +1,4 @@
-import type { Difficulty, DrillConfig, FactStat, Operation, Problem } from "./types";
+import type { Difficulty, DrillConfig, FactStat, Operation, Problem } from "./types.ts";
 
 const OP_SYMBOL: Record<Operation, string> = {
   add: "+",
@@ -97,11 +97,62 @@ function makeProblem(a: number, op: Operation, b: number): Problem {
   };
 }
 
-function operandsFor(
-  op: Operation,
-  range: Range,
-  table: number | null,
-): { a: number; b: number } {
+function makeAlgebraProblem(difficulty: Difficulty): Problem {
+  const answer =
+    difficulty === "easy"
+      ? randInt(1, 12)
+      : difficulty === "medium"
+        ? randInt(2, 20)
+        : randInt(4, 30);
+  const family =
+    difficulty === "easy"
+      ? pick(["add", "sub"] as const)
+      : difficulty === "medium"
+        ? pick(["add", "sub", "mul", "div"] as const)
+        : pick(["mul-add", "mul-sub", "div", "sub"] as const);
+
+  let prompt = "";
+  let key = "";
+  if (family === "add") {
+    const n = randInt(2, difficulty === "easy" ? 10 : 24);
+    prompt = `x + ${n} = ${answer + n}`;
+    key = "alg:add";
+  } else if (family === "sub") {
+    const n = randInt(2, difficulty === "easy" ? 10 : 24);
+    prompt = `x − ${n} = ${answer - n}`;
+    key = "alg:sub";
+  } else if (family === "mul") {
+    const n = randInt(2, 12);
+    prompt = `${n}x = ${n * answer}`;
+    key = "alg:mul";
+  } else if (family === "div") {
+    const n = randInt(2, 12);
+    prompt = `x ÷ ${n} = ${answer}`;
+    key = "alg:div";
+  } else if (family === "mul-add") {
+    const n = randInt(2, 8);
+    const offset = randInt(2, 15);
+    prompt = `${n}x + ${offset} = ${n * answer + offset}`;
+    key = "alg:two-step-add";
+  } else {
+    const n = randInt(2, 8);
+    const offset = randInt(2, 15);
+    prompt = `${n}x − ${offset} = ${n * answer - offset}`;
+    key = "alg:two-step-sub";
+  }
+
+  return {
+    id: nextId++,
+    a: answer,
+    b: 0,
+    op: "add",
+    answer,
+    prompt,
+    factKey: key,
+  };
+}
+
+function operandsFor(op: Operation, range: Range, table: number | null): { a: number; b: number } {
   if (op === "mul") {
     const focused = table ?? randInt(range.mulMin, range.mulMax);
     const other = randInt(range.mulMin, range.mulMax);
@@ -157,6 +208,7 @@ export function nextProblem(
   facts: Record<string, FactStat>,
   avoidKey?: string,
 ): Problem {
+  if (config.subject === "algebra") return makeAlgebraProblem(config.difficulty);
   const range = RANGES[config.difficulty];
   const op = resolveOp(config);
 
@@ -204,11 +256,11 @@ export function scoreFor(elapsedMs: number, combo: number): number {
 }
 
 export function configKey(config: DrillConfig): string {
-  return `${config.operation}:${config.mode}:${config.difficulty}:${config.table ?? "all"}`;
+  return `${config.subject}:${config.operation}:${config.mode}:${config.difficulty}:${config.table ?? "all"}`;
 }
 
 export function bestKey(config: DrillConfig): string {
-  return `${config.operation}:${config.difficulty}:${config.table ?? "all"}`;
+  return `${config.subject}:${config.operation}:${config.difficulty}:${config.table ?? "all"}`;
 }
 
 export function masteryOf(stat: FactStat | undefined): "none" | "weak" | "learning" | "mastered" {

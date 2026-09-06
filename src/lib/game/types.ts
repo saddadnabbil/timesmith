@@ -1,10 +1,12 @@
 export type Operation = "add" | "sub" | "mul" | "div";
 export type OperationFilter = Operation | "mix";
+export type Subject = "arithmetic" | "algebra";
 export type Mode = "sprint" | "streak" | "practice";
 export type Difficulty = "easy" | "medium" | "hard";
 export type Screen = "home" | "play" | "results" | "progress";
 
 export interface DrillConfig {
+  subject: Subject;
   operation: OperationFilter;
   mode: Mode;
   difficulty: Difficulty;
@@ -47,13 +49,24 @@ export interface SaveData {
     streak: Record<string, number>;
   };
   muted: boolean;
+  profile: {
+    id: string;
+    name: string;
+    color: string;
+  };
   totals: {
     answered: number;
     correct: number;
   };
+  daily: {
+    currentStreak: number;
+    bestStreak: number;
+    lastPracticeDate: string | null;
+  };
 }
 
 export const DEFAULT_CONFIG: DrillConfig = {
+  subject: "arithmetic",
   operation: "mul",
   mode: "sprint",
   difficulty: "medium",
@@ -63,4 +76,4 @@ export const DEFAULT_CONFIG: DrillConfig = {
 export const SPRINT_SECONDS = 60;
 export const STREAK_LIVES = 3;
 export const PRACTICE_COUNT = 20;
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 3;

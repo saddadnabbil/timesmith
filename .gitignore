@@ -9,6 +9,7 @@ dist
 .wrangler
 .tanstack
 .grok
+.neon
 
 # Environment & local settings
 .env

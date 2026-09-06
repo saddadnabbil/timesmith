@@ -87,9 +87,15 @@ function toSql(run: Run): Sql {
 
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
-    const { Pool, types } = await import("pg");
+    // Neon's serverless driver (HTTP/WebSocket, not raw TCP): the deployed
+    // Worker runtime has no `net` sockets, so plain `pg` throws on every query.
+    // `poolQueryViaFetch` also keeps queries off a held WebSocket — a warm Worker
+    // isolate reusing a socket opened by an earlier request throws (sockets can't
+    // outlive the request that created them) — one stateless fetch per query
+    // sidesteps that entirely. One pool per process; warm serverless instances
+    // reuse it.
+    const { Pool, types, neonConfig } = await import("@neondatabase/serverless");
+    neonConfig.poolQueryViaFetch = true;
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);

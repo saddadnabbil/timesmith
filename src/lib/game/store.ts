@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { bestKey, nextProblem, scoreFor } from "./facts";
-import { defaultSave, loadSave, writeSave } from "./save";
+import { defaultSave, loadSave, recordDailyPractice, writeSave } from "./save";
 import {
   DEFAULT_CONFIG,
   PRACTICE_COUNT,
@@ -42,9 +42,13 @@ interface GameState {
   save: SaveData;
   session: Session | null;
   result: SessionResult | null;
+  runTicketId: string | null;
   hydrate: () => void;
   setConfig: (patch: Partial<DrillConfig>) => void;
   setMuted: (muted: boolean) => void;
+  setProfileName: (name: string) => void;
+  replaceSave: (save: SaveData) => void;
+  setRunTicketId: (ticketId: string | null) => void;
   start: (override?: Partial<DrillConfig>) => void;
   submit: (value: number) => void;
   tick: (dtMs: number) => void;
@@ -60,17 +64,12 @@ function persist(save: SaveData): SaveData {
   return save;
 }
 
-function recordFact(
-  save: SaveData,
-  key: string,
-  correct: boolean,
-  elapsedMs: number,
-): SaveData {
+function recordFact(save: SaveData, key: string, correct: boolean, elapsedMs: number): SaveData {
   const prev = save.facts[key] ?? { attempts: 0, correct: 0, lastMs: 0, avgMs: 0 };
   const attempts = prev.attempts + 1;
   const nextCorrect = prev.correct + (correct ? 1 : 0);
   const avgMs = Math.round((prev.avgMs * prev.attempts + elapsedMs) / attempts);
-  return {
+  return recordDailyPractice({
     ...save,
     facts: {
       ...save.facts,
@@ -80,7 +79,7 @@ function recordFact(
       answered: save.totals.answered + 1,
       correct: save.totals.correct + (correct ? 1 : 0),
     },
-  };
+  });
 }
 
 export const useGame = create<GameState>((set, get) => ({
@@ -90,6 +89,7 @@ export const useGame = create<GameState>((set, get) => ({
   save: defaultSave(),
   session: null,
   result: null,
+  runTicketId: null,
 
   hydrate: () => {
     if (get().hydrated) return;
@@ -104,6 +104,15 @@ export const useGame = create<GameState>((set, get) => ({
     set((s) => ({ save: persist({ ...s.save, muted }) }));
   },
 
+  setProfileName: (name) => {
+    const clean = name.trim().replace(/\s+/g, " ").slice(0, 24);
+    if (!clean) return;
+    set((s) => ({ save: persist({ ...s.save, profile: { ...s.save.profile, name: clean } }) }));
+  },
+
+  replaceSave: (save) => set({ save: persist(save) }),
+  setRunTicketId: (runTicketId) => set({ runTicketId }),
+
   start: (override) => {
     const config = { ...get().config, ...override };
     const problem = nextProblem(config, get().save.facts);
@@ -112,6 +121,7 @@ export const useGame = create<GameState>((set, get) => ({
       config,
       screen: "play",
       result: null,
+      runTicketId: null,
       session: {
         config,
         problem,

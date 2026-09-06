@@ -5,6 +5,8 @@ import { NumberPad } from "@/components/game/number-pad";
 import { ProblemCard } from "@/components/game/problem-card";
 import { resumeAudio, sfxCorrect, sfxTap, sfxTick, sfxWrong, unlockAudio } from "@/lib/game/audio";
 import { advanceAfterFeedback, useGame } from "@/lib/game/store";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { startRankedRun } from "@/lib/game/cloud";
 import { PRACTICE_COUNT, SPRINT_SECONDS, STREAK_LIVES } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,9 @@ export function PlayScreen() {
   const togglePause = useGame((s) => s.togglePause);
   const quit = useGame((s) => s.quit);
   const [input, setInput] = useState("");
+  const { user, isPending } = useCurrentUserState();
+  const runTicketId = useGame((s) => s.runTicketId);
+  const setRunTicketId = useGame((s) => s.setRunTicketId);
   const inputRef = useRef("");
   const lastTickSecond = useRef<number | null>(null);
 
@@ -26,6 +31,17 @@ export function PlayScreen() {
     inputRef.current = "";
     setInput("");
   }, [session?.problem.id]);
+
+  useEffect(() => {
+    if (!session || isPending || !user || runTicketId) return;
+    let live = true;
+    startRankedRun({ data: { subject: session.config.subject, mode: session.config.mode } })
+      .then((result) => live && setRunTicketId(result.ticketId))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [isPending, runTicketId, session?.config.mode, session?.config.subject, setRunTicketId, user]);
 
   useEffect(() => {
     if (!session || session.feedback === "idle") return;
@@ -136,7 +152,7 @@ export function PlayScreen() {
   const practicePct = Math.min(100, (session.asked / PRACTICE_COUNT) * 100);
 
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="relative mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pt-6">
       <header className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label="Quit" onClick={quit}>
           <X className="size-5" />
@@ -171,7 +187,7 @@ export function PlayScreen() {
       </header>
 
       {session.config.mode === "sprint" && (
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-elevated">
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-border">
           <div
             className={cn(
               "h-full rounded-full bg-accent transition-[width] duration-100",
@@ -182,21 +198,23 @@ export function PlayScreen() {
         </div>
       )}
       {session.config.mode === "practice" && (
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-elevated">
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-border">
           <div className="h-full rounded-full bg-accent" style={{ width: `${practicePct}%` }} />
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+      <div className="forge-card mt-5 flex items-center justify-between gap-3 rounded-[var(--radius-lg)] px-4 py-3 text-sm">
         <div>
           <p className="text-[11px] tracking-wide text-subtle uppercase">Score</p>
-          <p className="font-display text-2xl leading-none font-medium tabular-nums">{session.score}</p>
+          <p className="font-display text-2xl leading-none font-black tabular-nums">
+            {session.score}
+          </p>
         </div>
         <div className="text-center">
           <p className="text-[11px] tracking-wide text-subtle uppercase">Combo</p>
           <p
             className={cn(
-              "font-display text-2xl leading-none font-medium tabular-nums",
+              "font-display text-2xl leading-none font-black tabular-nums",
               session.combo >= 3 && "text-accent",
             )}
           >
@@ -219,7 +237,7 @@ export function PlayScreen() {
         ) : (
           <div className="text-right">
             <p className="text-[11px] tracking-wide text-subtle uppercase">Hit</p>
-            <p className="font-display text-2xl leading-none font-medium tabular-nums">
+            <p className="font-display text-2xl leading-none font-black tabular-nums">
               {session.correct}
             </p>
           </div>
@@ -235,13 +253,8 @@ export function PlayScreen() {
         />
       </div>
 
-      <div className="mt-auto pt-6">
-        <NumberPad
-          disabled={locked}
-          onDigit={appendDigit}
-          onBack={backspace}
-          onEnter={commit}
-        />
+      <div className="pt-6">
+        <NumberPad disabled={locked} onDigit={appendDigit} onBack={backspace} onEnter={commit} />
         <p className="mt-3 hidden text-center text-xs text-subtle sm:block">
           Keyboard: digits, Enter, Backspace. Esc pauses.
         </p>
@@ -249,9 +262,11 @@ export function PlayScreen() {
 
       {session.paused && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg/80 px-6">
-          <div className="w-full max-w-sm rounded-[var(--radius-xl)] bg-elevated p-6 shadow-[var(--shadow-border)]">
-            <h2 className="font-display text-2xl font-medium">Paused</h2>
-            <p className="mt-2 text-sm text-muted">The clock is stopped. Resume when you are ready.</p>
+          <div className="w-full max-w-sm rounded-[var(--radius-xl)] bg-elevated p-6 shadow-[var(--shadow-paper)]">
+            <h2 className="font-display text-2xl font-black">Paused</h2>
+            <p className="mt-2 text-sm text-muted">
+              The clock is stopped. Resume when you are ready.
+            </p>
             <div className="mt-6 flex flex-col gap-2">
               <Button size="lg" onClick={togglePause}>
                 Resume
@@ -279,11 +294,7 @@ function HudCenter({
   feedback: "idle" | "correct" | "wrong";
 }) {
   if (sessionMode === "sprint") {
-    return (
-      <p className="font-display text-lg font-medium tabular-nums">
-        {remainingSec}s
-      </p>
-    );
+    return <p className="font-display text-lg font-medium tabular-nums">{remainingSec}s</p>;
   }
   if (sessionMode === "practice") {
     const current = feedback === "idle" ? asked + 1 : asked;

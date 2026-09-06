@@ -1,11 +1,20 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { factKey, masteryOf } from "@/lib/game/facts";
 import { sfxStart, unlockAudio } from "@/lib/game/audio";
 import { useGame } from "@/lib/game/store";
 import { cn } from "@/lib/utils";
 
 const AXIS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const ALGEBRA_CONCEPTS = [
+  { key: "alg:add", label: "Additive equations", example: "x + a = b" },
+  { key: "alg:sub", label: "Subtractive equations", example: "x − a = b" },
+  { key: "alg:mul", label: "Multiplicative equations", example: "ax = b" },
+  { key: "alg:div", label: "Division equations", example: "x ÷ a = b" },
+  { key: "alg:two-step-add", label: "Two-step addition", example: "ax + b = c" },
+  { key: "alg:two-step-sub", label: "Two-step subtraction", example: "ax − b = c" },
+] as const;
 
 export function ProgressScreen() {
   const save = useGame((s) => s.save);
@@ -14,9 +23,7 @@ export function ProgressScreen() {
   const setConfig = useGame((s) => s.setConfig);
 
   const accuracy =
-    save.totals.answered > 0
-      ? Math.round((save.totals.correct / save.totals.answered) * 100)
-      : 0;
+    save.totals.answered > 0 ? Math.round((save.totals.correct / save.totals.answered) * 100) : 0;
 
   let mastered = 0;
   let weak = 0;
@@ -40,14 +47,17 @@ export function ProgressScreen() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-8 px-5 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 pt-6 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8">
       <header className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={goHome}>
           <ArrowLeft className="size-5" />
         </Button>
         <div>
           <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Memory</p>
-          <h1 className="font-display text-2xl font-medium tracking-tight">Progress</h1>
+          <h1 className="font-display text-2xl font-black tracking-tight">Progress</h1>
+        </div>
+        <div className="ml-auto">
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -60,7 +70,7 @@ export function ProgressScreen() {
       <section>
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-medium">Times tables</h2>
+            <h2 className="font-display text-xl font-black">Times tables</h2>
             <p className="text-sm text-muted">
               Color shows how well each product sticks. Tap a row to drill that table.
             </p>
@@ -137,15 +147,62 @@ export function ProgressScreen() {
           </p>
         )}
       </section>
+
+      <section>
+        <div className="mb-3">
+          <p className="text-xs font-extrabold tracking-[0.14em] text-accent-dark uppercase">
+            Algebra forge
+          </p>
+          <h2 className="font-display mt-1 text-xl font-black">Concept mastery</h2>
+          <p className="mt-1 text-sm font-semibold text-muted">
+            Each family strengthens as you solve equations accurately.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {ALGEBRA_CONCEPTS.map((concept) => {
+            const stat = save.facts[concept.key];
+            const mastery = masteryOf(stat);
+            const accuracy =
+              stat && stat.attempts > 0 ? Math.round((stat.correct / stat.attempts) * 100) : null;
+            return (
+              <article key={concept.key} className="forge-card rounded-[var(--radius-lg)] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-extrabold">{concept.label}</h3>
+                    <p className="mt-1 font-display text-sm font-black text-accent-dark">
+                      {concept.example}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "mt-1 size-3 shrink-0 rounded-full",
+                      mastery === "none" && "bg-border",
+                      mastery === "weak" && "bg-danger",
+                      mastery === "learning" && "bg-sky",
+                      mastery === "mastered" && "bg-success",
+                    )}
+                    aria-label={mastery}
+                  />
+                </div>
+                <p className="mt-3 text-xs font-semibold text-muted">
+                  {accuracy === null
+                    ? "Not practiced yet"
+                    : `${accuracy}% accuracy · ${stat?.attempts} attempts`}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-lg)] bg-elevated px-3 py-3 shadow-[var(--shadow-border)]">
+    <div className="forge-card rounded-[var(--radius-lg)] px-3 py-3">
       <dt className="text-[11px] tracking-wide text-subtle uppercase">{label}</dt>
-      <dd className="font-display mt-1 text-xl font-medium tabular-nums">{value}</dd>
+      <dd className="font-display mt-1 text-xl font-black tabular-nums">{value}</dd>
     </div>
   );
 }
