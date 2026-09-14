@@ -1,16 +1,26 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, Cloud, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimesmithMark } from "@/components/timesmith-mark";
 import { AUTH_PROVIDERS, authEnabled, signIn } from "@/lib/auth/client";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
 function Login() {
+  const { user, isPending } = useCurrentUserState();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+
+  // Already signed in — don't show the sign-in form (this route isn't
+  // guarded elsewhere; a signed-in visitor can still navigate here directly).
+  // Wait out `isPending` first: bouncing on `user: null` alone would redirect
+  // a signed-in visitor away on every hard reload, before the session
+  // finishes resolving.
+  if (isPending) return null;
+  if (user) return <Navigate to="/" />;
 
   return (
     <main className="min-h-dvh bg-bg px-5 py-6 text-fg sm:grid sm:place-items-center sm:py-10">

@@ -34,12 +34,12 @@ import { bearer, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
-import { Pool, neonConfig } from "@neondatabase/serverless";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { AUTH_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
+import { neonHttpDialect } from "./neon-http-dialect";
 import {
   GROK_ISSUER_DEFAULT,
   PREVIEW_ALLOWED_HOSTS,
@@ -148,14 +148,15 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // SAME DB as app data, including email/password users. Both use the Better Auth
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
-// `poolQueryViaFetch`: a warm Worker isolate reusing a WebSocket a previous
-// request opened throws (sockets can't outlive their request) — route queries
-// over stateless fetch instead. Set here too since this Pool is constructed at
-// module scope, before `ensureDbReady()`'s dynamic import (in `../db`) would
-// otherwise set it.
-if (databaseUrl) neonConfig.poolQueryViaFetch = true;
+// Deployed apps go through `neonHttpDialect`, NOT `Pool` — Cloudflare Workers
+// forbids resolving I/O across requests, and `Pool` (even with
+// `poolQueryViaFetch`) keeps a connection checked out across the
+// connect/query/release sequence, so a pooled client opened on one request
+// could be torn down or resolved on a later one. That surfaces as random 500s
+// on session reads, sign-out, and the OAuth callback. `neon()`'s `.query()` is
+// a single stateless fetch per call, so there is no cross-request state to leak.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? { dialect: neonHttpDialect(databaseUrl), type: "postgres" as const }
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
